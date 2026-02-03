@@ -10,10 +10,10 @@ app.use(bp.json())
 
 // db mysql connection 
 const mydb = mysql.createConnection({
-    host:'localhost',
-    user: 'root',
-    password:'',
-    database: 'StudentManagement'
+    host:process.env.HOST,
+    user: process.env.USER,
+    password:process.env.PASSWORD,
+    database: process.env.DATABASE
 })
 
 mydb.connect(function(err){
@@ -76,6 +76,6 @@ app.delete('/users/:id', function(req,res){
 })
 
 
-app.listen(5000, function(){
+app.listen(process.env.PORT, function(){
     console.log('server is running on port 5000')
 })
