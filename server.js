@@ -45,6 +45,36 @@ app.post('/users',function(req,res){
 })
 
 
+app.get('/users/:id', function(req,res){
+    const id = req.params.id
+    mydb.query('select * from users where id = ?',[id],(error,results)=>{
+          if(error) throw new Error(error)
+        res.json({message: 'Added a user',results})
+    })
+})
+
+app.put('/users/:id', function(req,res){
+    const id = req.params.id;
+        const {name,age,salary,isActive} = req.body
+    mydb.query('UPDATE users SET name=?, age=?, salary=?, isActive=? WHERE id =?'
+        ,[name,age,salary,isActive,id],(err,results)=>{
+             if(err) throw new Error(err)
+        res.json({message: 'updated a user',results})
+        })
+})
+
+
+// app.delete
+
+app.delete('/users/:id', function(req,res){
+    const id = req.params.id
+    mydb.query('DELETE from  users where id= ?',[id],(err,results)=>{
+        if(err) throw new Error(err)
+                    res.json({message: 'deleted a user',results})
+
+    })
+})
+
 
 app.listen(5000, function(){
     console.log('server is running on port 5000')
