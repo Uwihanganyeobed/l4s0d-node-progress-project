@@ -2,6 +2,9 @@ import express from 'express'
 import dotenv from 'dotenv'
 import mysql from 'mysql'
 import bp from 'body-parser'
+import bycryptjs from 'bcryptjs'
+import jwt from 'jsonwebtoken'
+
 
 dotenv.config()
 
@@ -23,13 +26,66 @@ mydb.connect(function(err){
 
 
 app.get('/',function(req,res){
-    res.send('my Server is running')
+    try {
+    res.status(200).send('my Server is running')
+        
+    } catch (error) {
+        res.status(500).send('Internal Server errror')
+    }
+})
+
+// authentication
+// REGISTER creating user for first time 
+app.post('/register',function(req,res){
+    const {username,email,password} = req.body;
+    // check if user is already in db
+    mydb.query('SELECT * FROM users WHERE email = ?',[email],
+        async(err,result)=>{
+            if(result.length >0){
+                return res.status(500).json({message: 'User already exits'})
+            }
+            // hash the password
+            const newpassword = await bycryptjs.hash(password,10)
+            // save the user in db
+            mydb.query(
+                "INSERT INTO users(username,email,password) VALUES (?,?,?) ",
+                [username,email,newpassword],err=>{
+                    if(err) throw new Error(err)
+                        res.status(201).json({message: 'User created successfully'})
+                })
+        }
+
+    )
+})
+//LOGIN checking created user
+
+app.post('/login', function(req,res){
+    //check if user is in db
+    const {email,password} = req.body;
+    // find the user in db
+    mydb.query("SELECT * FROM users WHERE email=?",[email], async(err,result)=>{
+        if(err) throw new Error(err)
+        if(result.length === 0) return res.status(404).json({message: 'User not found'})
+            //get user
+        const user = result[0];
+        // compare the password
+        const matchedPassword = await bycryptjs.compare(password,user.password)
+        if(!matchedPassword) return res.status(401).json({message: 'Invalid credentials'})
+
+        // generate a token
+        const token = jwt.sign(
+            {id: user.id},
+            {email: user.email},
+            process.env.JWT_SECRET,
+            {expiresIn: '1h'}
+        )
+        res.status(200).json({message: 'Login successful', token})
+    })
 })
 
 // GET all users(students)
 
 app.get('/users',function(req,res){
-
     mydb.query('select * from users',(err,results)=>{
         if(err) throw new Error(err)
         res.json({message: 'Got users ',results})
