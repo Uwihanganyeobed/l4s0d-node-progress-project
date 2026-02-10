@@ -51,7 +51,7 @@ app.post('/register',function(req,res){
                 "INSERT INTO users(username,email,password) VALUES (?,?,?) ",
                 [username,email,newpassword],err=>{
                     if(err) throw new Error(err)
-                        res.status(201).json({message: 'User created successfully'})
+                        res.status(201).json({message: 'User created successfully',result})
                 })
         }
 
@@ -63,19 +63,20 @@ app.post('/login', function(req,res){
     //check if user is in db
     const {email,password} = req.body;
     // find the user in db
-    mydb.query("SELECT * FROM users WHERE email=?",[email], async(err,result)=>{
+    mydb.query("SELECT * FROM users WHERE email=?",[email], async(err,results)=>{
         if(err) throw new Error(err)
-        if(result.length === 0) return res.status(404).json({message: 'User not found'})
+        if(results.length === 0) return res.status(404).json({message: 'User not found'})
             //get user
-        const user = result[0];
+        const user = results[0]
+        console.log(user)
         // compare the password
         const matchedPassword = await bycryptjs.compare(password,user.password)
-        if(!matchedPassword) return res.status(401).json({message: 'Invalid credentials'})
-
+        console.log(matchedPassword)
+        if(matchedPassword) 
+            return res.status(401).json({message: 'Invalid credentials'})
         // generate a token
         const token = jwt.sign(
-            {id: user.id},
-            {email: user.email},
+            {id: user.id, email: user.email},
             process.env.JWT_SECRET,
             {expiresIn: '1h'}
         )
@@ -92,13 +93,13 @@ app.get('/users',function(req,res){
     })
 })
 
-app.post('/users',function(req,res){
-    const {id,name,age,salary,isActive} = req.body
-    mydb.query('insert into users (id,name,age,salary,isActive) values(?,?,?,?,?)',[id,name,age,salary,isActive],(err,results)=>{
-        if(err) throw new Error(err)
-        res.json({message: 'Added a user',results})
-    })
-})
+// app.post('/users',function(req,res){
+//     const {id,name,age,salary,isActive} = req.body
+//     mydb.query('insert into users (id,name,age,salary,isActive) values(?,?,?,?,?)',[id,name,age,salary,isActive],(err,results)=>{
+//         if(err) throw new Error(err)
+//         res.json({message: 'Added a user',results})
+//     })
+// })
 
 
 app.get('/users/:id', function(req,res){
