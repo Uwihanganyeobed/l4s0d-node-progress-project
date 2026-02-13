@@ -24,15 +24,18 @@ mydb.connect(function(err){
         console.log('Mysql Databse connected')
 })
 
+app.get("/", (req, res) => {
+  res.send("Server is working!");
+});
 
-app.get('/',function(req,res){
-    try {
-    res.status(200).send('my Server is running')
+// app.get('/',function(req,res){
+//     try {
+//     res.status(200).send('my Server is running')
         
-    } catch (error) {
-        res.status(500).send('Internal Server errror')
-    }
-})
+//     } catch (error) {
+//         res.status(500).send('Internal Server errror')
+//     }
+// })
 
 // authentication
 // REGISTER creating user for first time 
@@ -44,6 +47,7 @@ app.post('/register',function(req,res){
             if(result.length >0){
                 return res.status(500).json({message: 'User already exits'})
             }
+
             // hash the password
             const newpassword = await bycryptjs.hash(password,10)
             // save the user in db
@@ -72,8 +76,9 @@ app.post('/login', function(req,res){
         // compare the password
         const matchedPassword = await bycryptjs.compare(password,user.password)
         console.log(matchedPassword)
-        if(matchedPassword) 
+        if(!matchedPassword) {
             return res.status(401).json({message: 'Invalid credentials'})
+        }
         // generate a token
         const token = jwt.sign(
             {id: user.id, email: user.email},
@@ -83,6 +88,23 @@ app.post('/login', function(req,res){
         res.status(200).json({message: 'Login successful', token})
     })
 })
+
+
+// middleware to verify token
+const verifyToken =(req,res,next)=>{
+    const authHeader = req.headers['authorization']
+    if(!authHeader) return res.status(401).json({message: 'No token provided'})
+
+    const token = authHeader.split(' ')[1]
+    if(!token) return res.status(401).json({message: 'No token provided'})
+
+    jwt.verify(token, process.env.JWT_SECRET,(err,decoded)=>{
+        if(err) return res.status(401).json({message: 'Invalid token'})
+        req.user = decoded//attach our user to a request
+    next()//execute our real API function after these checks//allow request
+    })
+}
+
 
 // GET all users(students)
 
@@ -110,11 +132,11 @@ app.get('/users/:id', function(req,res){
     })
 })
 
-app.put('/users/:id', function(req,res){
+app.put('/users/:id',verifyToken, function(req,res){
     const id = req.params.id;
-        const {name,age,salary,isActive} = req.body
-    mydb.query('UPDATE users SET name=?, age=?, salary=?, isActive=? WHERE id =?'
-        ,[name,age,salary,isActive,id],(err,results)=>{
+        const {email,username} = req.body
+    mydb.query('UPDATE users SET username=?, email=? WHERE id =?'
+        ,[username,email,id],(err,results)=>{
              if(err) throw new Error(err)
         res.json({message: 'updated a user',results})
         })
@@ -123,7 +145,7 @@ app.put('/users/:id', function(req,res){
 
 // app.delete
 
-app.delete('/users/:id', function(req,res){
+app.delete('/users/:id',verifyToken,   function(req,res){
     const id = req.params.id
     mydb.query('DELETE from  users where id= ?',[id],(err,results)=>{
         if(err) throw new Error(err)
@@ -136,3 +158,7 @@ app.delete('/users/:id', function(req,res){
 app.listen(process.env.PORT, function(){
     console.log('server is running on port 5000')
 })
+
+
+
+
