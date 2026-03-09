@@ -2,7 +2,8 @@ import express from 'express'
 import dotenv from 'dotenv'
 import mysql from 'mysql'
 import bp from 'body-parser'
-import bycryptjs from 'bcryptjs'
+import bycryt from 'bcryptjs'
+
 import jwt from 'jsonwebtoken'
 
 
@@ -49,7 +50,7 @@ app.post('/register',function(req,res){
             }
 
             // hash the password
-            const newpassword = await bycryptjs.hash(password,10)
+            const newpassword = await bycryt.hash(password,10)
             // save the user in db
             mydb.query(
                 "INSERT INTO users(username,email,password) VALUES (?,?,?) ",
@@ -74,9 +75,9 @@ app.post('/login', function(req,res){
         const user = results[0]
         console.log(user)
         // compare the password
-        const matchedPassword = await bycryptjs.compare(password,user.password)
+        const matchedPassword = await bycryt.compare(password,user.password)
         console.log(matchedPassword)
-        if(!matchedPassword) {
+        if(matchedPassword) {
             return res.status(401).json({message: 'Invalid credentials'})
         }
         // generate a token
@@ -90,7 +91,7 @@ app.post('/login', function(req,res){
 })
 
 
-// middleware to verify token
+// middleware to verify token RABC role
 const verifyToken =(req,res,next)=>{
     const authHeader = req.headers['authorization']
     if(!authHeader) return res.status(401).json({message: 'No token provided'})
@@ -142,7 +143,6 @@ app.put('/users/:id',verifyToken, function(req,res){
         })
 })
 
-
 // app.delete
 
 app.delete('/users/:id',verifyToken,   function(req,res){
@@ -153,6 +153,7 @@ app.delete('/users/:id',verifyToken,   function(req,res){
 
     })
 })
+
 
 
 app.listen(process.env.PORT, function(){
